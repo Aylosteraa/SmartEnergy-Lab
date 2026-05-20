@@ -1,0 +1,91 @@
+version: "3.9"
+
+services:
+
+  frontend:
+
+    build: ./frontend
+
+    container_name: smartenergy_frontend
+
+    ports:
+      - "5173:5173"
+
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+    depends_on:
+      - backend
+
+    restart: always
+
+
+  backend:
+
+    build: ./backend
+
+    container_name: smartenergy_backend
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      - ./backend:/app
+
+    env_file:
+      - ./backend/.env
+
+    depends_on:
+      - postgres
+      - hivemq
+
+    restart: always
+
+
+  postgres:
+
+    image: postgres:16
+
+    container_name: smartenergy_postgres
+
+    restart: always
+
+    environment:
+
+      POSTGRES_USER: postgres
+
+      POSTGRES_PASSWORD: postgres
+
+      POSTGRES_DB: smartenergy
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  hivemq:
+
+    image: hivemq/hivemq4
+
+    container_name: smartenergy_hivemq
+
+    restart: always
+
+    ports:
+      - "1883:1883"
+      - "8080:8080"
+
+    volumes:
+      - hivemq_data:/opt/hivemq/data
+      - hivemq_log:/opt/hivemq/log
+
+
+volumes:
+
+  postgres_data:
+
+  hivemq_data:
+
+  hivemq_log:

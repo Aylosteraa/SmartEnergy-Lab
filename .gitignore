@@ -1,0 +1,101 @@
+
+# PYTHON
+
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+*.sqlite3
+
+.env
+
+venv/
+.env/
+.venv/
+
+.pytest_cache/
+
+.mypy_cache/
+
+coverage/
+
+htmlcov/
+
+# FASTAPI
+
+*.log
+
+# NODE
+
+node_modules/
+
+npm-debug.log*
+
+yarn-debug.log*
+
+yarn-error.log*
+
+pnpm-debug.log*
+
+# VITE
+
+dist/
+
+.vite/
+
+# REACT
+
+build/
+
+# DOCKER
+
+postgres_data/
+
+hivemq_data/
+
+hivemq_log/
+
+# IDE
+
+.idea/
+
+.vscode/
+
+*.swp
+
+*.swo
+
+# OS
+
+.DS_Store
+
+Thumbs.db
+
+# ENV FILES
+
+backend/.env
+
+frontend/.env
+
+# CACHE
+
+.cache/
+
+# TESTS
+
+.pytest_cache/
+
+coverage.xml
+
+# JUPYTER
+
+.ipynb_checkpoints/
+
+# TEMP FILES
+
+*.tmp
+
+*.bak
+
+*.old

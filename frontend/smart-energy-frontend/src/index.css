@@ -1,0 +1,36 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+
+  -webkit-text-fill-color: black !important;
+
+  -webkit-box-shadow:
+    0 0 0px 1000px white inset !important;
+
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background-color: white;
+}
+
+.form-control:focus {
+  border-color: black !important;
+  box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.479) !important;
+}
