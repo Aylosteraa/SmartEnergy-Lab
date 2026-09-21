@@ -1289,6 +1289,8 @@ def get_forecast_recommendations():
 # РЕКОМЕНДАЦІЇ НА ДЕНЬ
 # =========================================================
 
+
+
 def get_day_recommendations():
 
     forecast = forecast_24h()
@@ -1448,6 +1450,7 @@ def get_day_recommendations():
     )
 
     return recommendations
+
 
 # =========================================================
 # АНАЛІТИЧНІ РЕКОМЕНДАЦІЇ
