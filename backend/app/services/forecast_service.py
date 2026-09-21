@@ -1,14 +1,13 @@
-from datetime import (
-    datetime,
-    timedelta
-)
-
-import pandas as pd
-
-import numpy as np
+from datetime import datetime, timedelta
 
 import joblib
+import numpy as np
+import pandas as pd
 
+
+# =========================================================
+# ML MODELS
+# =========================================================
 
 total_model = joblib.load(
     "app/ml/models/total_model.pkl"
@@ -27,18 +26,38 @@ generation_model = joblib.load(
 )
 
 
-def generate_weather_features(
-    dt: datetime
-):
+# =========================================================
+# DETERMINISTIC RANDOM GENERATOR
+# =========================================================
+
+def get_stable_rng(dt: datetime):
+
+    seed = (
+        dt.year * 1000000
+        + dt.month * 10000
+        + dt.day * 100
+        + dt.hour
+    )
+
+    return np.random.default_rng(seed)
+
+
+# =========================================================
+# WEATHER FEATURES
+# =========================================================
+
+def generate_weather_features(dt: datetime):
 
     hour = dt.hour
+
+    rng = get_stable_rng(dt)
 
     temp = (
         15
         + 10 * np.sin(
             2 * np.pi * hour / 24
         )
-        + np.random.normal(0, 1)
+        + rng.normal(0, 1)
     )
 
     cloudiness = np.clip(
@@ -47,7 +66,7 @@ def generate_weather_features(
         + 20 * np.sin(
             2 * np.pi * hour / 24
         )
-        + np.random.normal(0, 10),
+        + rng.normal(0, 10),
 
         0,
         100
@@ -56,7 +75,7 @@ def generate_weather_features(
     humidity = np.clip(
 
         60
-        + np.random.normal(0, 5),
+        + rng.normal(0, 5),
 
         20,
         100
@@ -65,7 +84,7 @@ def generate_weather_features(
     wind_speed = np.clip(
 
         5
-        + np.random.normal(0, 1),
+        + rng.normal(0, 1),
 
         0,
         20
@@ -73,60 +92,80 @@ def generate_weather_features(
 
     return {
 
-        "temp_dry": temp,
+        "temp_dry":
+            float(temp),
 
-        "cloudiness": cloudiness,
+        "cloudiness":
+            float(cloudiness),
 
-        "humidity": humidity,
+        "humidity":
+            float(humidity),
 
-        "wind_speed": wind_speed
+        "wind_speed":
+            float(wind_speed)
     }
 
 
-def create_features(
-    dt: datetime
-):
+# =========================================================
+# FEATURES
+# =========================================================
 
-    weather = (
-        generate_weather_features(dt)
+def create_features(dt: datetime):
+
+    weather = generate_weather_features(
+        dt
     )
+
+    rng = get_stable_rng(dt)
 
     features = {
 
-        "month": dt.month,
+        "month":
+            dt.month,
 
-        "day": dt.day,
+        "day":
+            dt.day,
 
-        "hour": dt.hour,
+        "hour":
+            dt.hour,
 
         "day_of_week":
-        dt.weekday(),
+            dt.weekday(),
 
         "is_weekend":
-        int(dt.weekday() >= 5),
+            int(dt.weekday() >= 5),
 
         "temp_dry":
-        weather["temp_dry"],
+            weather["temp_dry"],
 
         "cloudiness":
-        weather["cloudiness"],
+            weather["cloudiness"],
 
         "humidity":
-        weather["humidity"],
+            weather["humidity"],
 
         "wind_speed":
-        weather["wind_speed"],
+            weather["wind_speed"],
 
-        # mock lag features
         "lag_24h":
-        np.random.uniform(2, 5),
+            float(
+                rng.uniform(2, 5)
+            ),
 
         "rolling_24h":
-        np.random.uniform(2, 5)
+            float(
+                rng.uniform(2, 5)
+            )
     }
 
-    return pd.DataFrame([features])
+    return pd.DataFrame(
+        [features]
+    )
 
+
+# =========================================================
+# FORECAST 24H
+# =========================================================
 
 def forecast_24h():
 
@@ -137,49 +176,80 @@ def forecast_24h():
     for i in range(24):
 
         future_time = (
-            now + timedelta(hours=i)
+            now
+            + timedelta(hours=i)
         )
 
         X = create_features(
             future_time
         )
 
-        total = (
+        total = float(
             total_model.predict(X)[0]
         )
 
-        solar = (
+        solar = float(
             solar_model.predict(X)[0]
         )
 
-        battery = (
+        battery = float(
             battery_model.predict(X)[0]
         )
 
-        generation = (
+        generation = float(
             generation_model.predict(X)[0]
+        )
+
+        # Не допускаємо дивних від'ємних значень
+        total = max(
+            0,
+            total
+        )
+
+        solar = max(
+            0,
+            solar
+        )
+
+        generation = max(
+            0,
+            generation
+        )
+
+        balance = (
+            generation
+            - total
         )
 
         result.append({
 
             "time":
-            future_time.strftime("%H:%M"),
+                future_time.strftime(
+                    "%H:%M"
+                ),
 
             "total_consumption":
-            round(float(total), 2),
+                round(total, 2),
 
             "solar_consumption":
-            round(float(solar), 2),
+                round(solar, 2),
 
             "battery_consumption":
-            round(float(battery), 2),
+                round(battery, 2),
 
             "solar_generation":
-            round(float(generation), 2)
+                round(generation, 2),
+
+            "energy_balance":
+                round(balance, 2)
         })
 
     return result
 
+
+# =========================================================
+# FORECAST 7 DAYS
+# =========================================================
 
 def forecast_7d():
 
@@ -190,49 +260,82 @@ def forecast_7d():
     for i in range(7):
 
         future_time = (
-            now + timedelta(days=i)
-        ).replace(hour=13)
+            now
+            + timedelta(days=i)
+        ).replace(
+            hour=13,
+            minute=0,
+            second=0,
+            microsecond=0
+        )
 
         X = create_features(
             future_time
         )
 
-        total = (
+        total = float(
             total_model.predict(X)[0]
         )
 
-        solar = (
+        solar = float(
             solar_model.predict(X)[0]
         )
 
-        battery = (
+        battery = float(
             battery_model.predict(X)[0]
         )
 
-        generation = (
+        generation = float(
             generation_model.predict(X)[0]
+        )
+
+        total = max(
+            0,
+            total
+        )
+
+        solar = max(
+            0,
+            solar
+        )
+
+        generation = max(
+            0,
+            generation
         )
 
         result.append({
 
             "date":
-            future_time.strftime("%Y-%m-%d"),
+                future_time.strftime(
+                    "%Y-%m-%d"
+                ),
 
             "total_consumption":
-            round(float(total), 2),
+                round(total, 2),
 
             "solar_consumption":
-            round(float(solar), 2),
+                round(solar, 2),
 
             "battery_consumption":
-            round(float(battery), 2),
+                round(battery, 2),
 
             "solar_generation":
-            round(float(generation), 2)
+                round(generation, 2),
+
+            "energy_balance":
+                round(
+                    generation - total,
+                    2
+                )
         })
 
     return result
 
+
+# =========================================================
+# FORECAST MONTH
+# =========================================================
 
 def forecast_month():
 
@@ -243,96 +346,74 @@ def forecast_month():
     for i in range(30):
 
         future_time = (
-            now + timedelta(days=i)
-        ).replace(hour=13)
+            now
+            + timedelta(days=i)
+        ).replace(
+            hour=13,
+            minute=0,
+            second=0,
+            microsecond=0
+        )
 
         X = create_features(
             future_time
         )
 
-        total = (
+        total = float(
             total_model.predict(X)[0]
         )
 
-        solar = (
+        solar = float(
             solar_model.predict(X)[0]
         )
 
-        battery = (
+        battery = float(
             battery_model.predict(X)[0]
         )
 
-        generation = (
+        generation = float(
             generation_model.predict(X)[0]
+        )
+
+        total = max(
+            0,
+            total
+        )
+
+        solar = max(
+            0,
+            solar
+        )
+
+        generation = max(
+            0,
+            generation
         )
 
         result.append({
 
             "date":
-            future_time.strftime("%d.%m"),
+                future_time.strftime(
+                    "%d.%m"
+                ),
 
             "total_consumption":
-            round(float(total), 2),
+                round(total, 2),
 
             "solar_consumption":
-            round(float(solar), 2),
+                round(solar, 2),
 
             "battery_consumption":
-            round(float(battery), 2),
+                round(battery, 2),
 
             "solar_generation":
-            round(float(generation), 2)
+                round(generation, 2),
+
+            "energy_balance":
+                round(
+                    generation - total,
+                    2
+                )
         })
 
     return result
-
-
-def generate_recommendations():
-
-    forecast = forecast_24h()
-
-    recommendations = []
-
-
-    peak = max(
-        forecast,
-        key=lambda x:
-        x["total_consumption"]
-    )
-
-    recommendations.append(
-
-        f"Expected peak load at "
-        f"{peak['time']} "
-        f"({peak['total_consumption']} kWh)."
-    )
-
-
-    best_solar = max(
-        forecast,
-        key=lambda x:
-        x["solar_generation"]
-    )
-
-    recommendations.append(
-
-        f"Highest solar generation "
-        f"expected at "
-        f"{best_solar['time']} "
-        f"({best_solar['solar_generation']} kWh)."
-    )
-
-
-    battery_peak = max(
-        forecast,
-        key=lambda x:
-        x["battery_consumption"]
-    )
-
-    recommendations.append(
-
-        f"Battery usage peak expected "
-        f"at {battery_peak['time']}."
-    )
-
-    return recommendations
